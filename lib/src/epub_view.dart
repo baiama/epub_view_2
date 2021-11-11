@@ -184,7 +184,7 @@ class _EpubViewState extends State<EpubView> {
     );
   }
 
-  void _onNotePressed(String? href, void Function(String href)? openExternal) {
+  void _onNotePressed(String? href, void Function(String href)? showNote) {
     String note = href ?? "";
 
     // Chapter01.xhtml#ph1_1 -> [ph1_1, Chapter01.xhtml] || [ph1_1]
@@ -212,7 +212,9 @@ class _EpubViewState extends State<EpubView> {
           additional: ['/4/2'],
         );
 
-        _gotoEpubCfi(cfi);
+        if (cfi != null) {
+          showNote?.call(cfi);
+        }
       }
       return;
     } else {
@@ -228,67 +230,24 @@ class _EpubViewState extends State<EpubView> {
           chapter: chapter,
           paragraphIndex: paragraphIndex,
         );
-
-        _gotoEpubCfi(cfi);
+        if (cfi != null) {
+          showNote?.call(cfi);
+        }
       }
-
       return;
     }
   }
 
-  void _onLinkPressed(String href, void Function(String href)? openExternal) {
+  void _onLinkPressed(
+    String href,
+    void Function(String href)? openExternal,
+    void Function(String href)? showNote,
+  ) {
     if (href.contains('://')) {
       openExternal?.call(href);
       return;
     }
-
-    // Chapter01.xhtml#ph1_1 -> [ph1_1, Chapter01.xhtml] || [ph1_1]
-    String? hrefIdRef;
-    String? hrefFileName;
-
-    if (href.contains('#')) {
-      final dividedHref = href.split('#');
-      if (dividedHref.length == 1) {
-        hrefIdRef = href;
-      } else {
-        hrefFileName = dividedHref[0];
-        hrefIdRef = dividedHref[1];
-      }
-    } else {
-      hrefFileName = href;
-    }
-
-    if (hrefIdRef == null) {
-      final chapter = _chapterByFileName(hrefFileName);
-      if (chapter != null) {
-        final cfi = _epubCfiReader?.generateCfiChapter(
-          book: widget.controller._document,
-          chapter: chapter,
-          additional: ['/4/2'],
-        );
-
-        _gotoEpubCfi(cfi);
-      }
-      return;
-    } else {
-      final paragraph = _paragraphByIdRef(hrefIdRef);
-      final chapter =
-          paragraph != null ? _chapters[paragraph.chapterIndex] : null;
-
-      if (chapter != null && paragraph != null) {
-        final paragraphIndex =
-            _epubCfiReader?._getParagraphIndexByElement(paragraph.element);
-        final cfi = _epubCfiReader?.generateCfi(
-          book: widget.controller._document,
-          chapter: chapter,
-          paragraphIndex: paragraphIndex,
-        );
-
-        _gotoEpubCfi(cfi);
-      }
-
-      return;
-    }
+    _onNotePressed(href, showNote);
   }
 
   Paragraph? _paragraphByIdRef(String idRef) =>
@@ -418,8 +377,8 @@ class _EpubViewState extends State<EpubView> {
             _onNotePressed(url, widget.onNoteTap);
           },
           data: _paragraphs[index].element.outerHtml,
-          onLinkTap: (href, _, __, ___) =>
-              _onLinkPressed(href!, widget.onExternalLinkPressed),
+          onLinkTap: (href, _, __, ___) => _onLinkPressed(
+              href!, widget.onExternalLinkPressed, widget.onNoteTap),
           style: {
             'html': Style(
               padding: widget.paragraphPadding as EdgeInsets?,
