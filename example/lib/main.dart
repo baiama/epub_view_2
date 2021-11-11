@@ -132,6 +132,15 @@ class _MyHomePageState extends State<MyHomePage> {
           },
           onNoteTap: (String id) {
             print(id);
+            showModalBottomSheet(
+                context: context,
+                builder: (context) {
+                  return Container(
+                    height: 250,
+                    alignment: Alignment.center,
+                    child: Text(id),
+                  );
+                });
           },
           controller: _epubReaderController,
           onDocumentLoaded: (document) {
