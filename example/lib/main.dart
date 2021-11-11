@@ -126,6 +126,13 @@ class _MyHomePageState extends State<MyHomePage> {
           child: EpubReaderTableOfContents(controller: _epubReaderController),
         ),
         body: EpubView(
+          onExternalLinkPressed: (link) {
+            print("link tap");
+            print(link);
+          },
+          onNoteTap: (String id) {
+            print(id);
+          },
           controller: _epubReaderController,
           onDocumentLoaded: (document) {
             print('isLoaded: $document');

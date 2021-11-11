@@ -54,10 +54,12 @@ class EpubView extends StatefulWidget {
     this.paragraphPadding = const EdgeInsets.symmetric(horizontal: 16),
     this.textStyle = _defaultTextStyle,
     Key? key,
+    this.onNoteTap,
   }) : super(key: key);
 
   final EpubController controller;
   final ExternalLinkPressed? onExternalLinkPressed;
+  final ExternalLinkPressed? onNoteTap;
 
   /// Show document loading error message inside [EpubView]
   final Widget Function(Exception? error)? errorBuilder;
@@ -180,6 +182,58 @@ class _EpubViewState extends State<EpubView> {
       alignment: alignment,
       curve: curve,
     );
+  }
+
+  void _onNotePressed(String? href, void Function(String href)? openExternal) {
+    String note = href ?? "";
+
+    // Chapter01.xhtml#ph1_1 -> [ph1_1, Chapter01.xhtml] || [ph1_1]
+    String? hrefIdRef;
+    String? hrefFileName;
+
+    if (note.contains('#')) {
+      final dividedHref = note.split('#');
+      if (dividedHref.length == 1) {
+        hrefIdRef = href;
+      } else {
+        hrefFileName = dividedHref[0];
+        hrefIdRef = dividedHref[1];
+      }
+    } else {
+      hrefFileName = href;
+    }
+
+    if (hrefIdRef == null) {
+      final chapter = _chapterByFileName(hrefFileName);
+      if (chapter != null) {
+        final cfi = _epubCfiReader?.generateCfiChapter(
+          book: widget.controller._document,
+          chapter: chapter,
+          additional: ['/4/2'],
+        );
+
+        _gotoEpubCfi(cfi);
+      }
+      return;
+    } else {
+      final paragraph = _paragraphByIdRef(hrefIdRef);
+      final chapter =
+          paragraph != null ? _chapters[paragraph.chapterIndex] : null;
+
+      if (chapter != null && paragraph != null) {
+        final paragraphIndex =
+            _epubCfiReader?._getParagraphIndexByElement(paragraph.element);
+        final cfi = _epubCfiReader?.generateCfi(
+          book: widget.controller._document,
+          chapter: chapter,
+          paragraphIndex: paragraphIndex,
+        );
+
+        _gotoEpubCfi(cfi);
+      }
+
+      return;
+    }
   }
 
   void _onLinkPressed(String href, void Function(String href)? openExternal) {
@@ -360,6 +414,9 @@ class _EpubViewState extends State<EpubView> {
             _getParagraphIndexBy(positionIndex: index) == 0)
           _buildDivider(_chapters[chapterIndex]),
         Html(
+          onAnchorTap: (url, context, attributes, element) {
+            _onNotePressed(url, widget.onNoteTap);
+          },
           data: _paragraphs[index].element.outerHtml,
           onLinkTap: (href, _, __, ___) =>
               _onLinkPressed(href!, widget.onExternalLinkPressed),
