@@ -366,7 +366,7 @@ class _EpubViewState extends State<EpubView> {
     }
 
     final chapterIndex = _getChapterIndexBy(positionIndex: index);
-
+    print(_paragraphs[index].element.outerHtml);
     return Column(
       children: <Widget>[
         if (chapterIndex >= 0 &&
@@ -374,6 +374,7 @@ class _EpubViewState extends State<EpubView> {
           _buildDivider(_chapters[chapterIndex]),
         Html(
           onAnchorTap: (url, context, attributes, element) {
+            print(attributes);
             _onNotePressed(url, widget.onNoteTap);
           },
           data: _paragraphs[index].element.outerHtml,
@@ -393,6 +394,21 @@ class _EpubViewState extends State<EpubView> {
                   Uint8List.fromList(widget
                       .controller._document!.Content!.Images![url]!.Content!),
                 ),
+              );
+            },
+            'fnote': (context, child) {
+              return Row(
+                children: [
+                  Container(
+                    height: 10,
+                    width: 15,
+                    decoration: BoxDecoration(
+                      color: Colors.deepOrangeAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  child,
+                ],
               );
             }
           },
