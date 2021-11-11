@@ -184,6 +184,10 @@ class _EpubViewState extends State<EpubView> {
     );
   }
 
+  bool _containNotes(Paragraph item) {
+    return item.element.outerHtml.contains("sup");
+  }
+
   void _onNotePressed(String? href, void Function(String href)? showNote) {
     String note = href ?? "";
 
@@ -366,53 +370,52 @@ class _EpubViewState extends State<EpubView> {
     }
 
     final chapterIndex = _getChapterIndexBy(positionIndex: index);
-    print(_paragraphs[index].element.outerHtml);
-    return Column(
-      children: <Widget>[
-        if (chapterIndex >= 0 &&
-            _getParagraphIndexBy(positionIndex: index) == 0)
-          _buildDivider(_chapters[chapterIndex]),
-        Html(
-          onAnchorTap: (url, context, attributes, element) {
-            print(attributes);
-            _onNotePressed(url, widget.onNoteTap);
-          },
-          data: _paragraphs[index].element.outerHtml,
-          onLinkTap: (href, _, __, ___) => _onLinkPressed(
-              href!, widget.onExternalLinkPressed, widget.onNoteTap),
-          style: {
-            'html': Style(
-              padding: widget.paragraphPadding as EdgeInsets?,
-            ).merge(Style.fromTextStyle(widget.textStyle)),
-          },
-          customRender: {
-            'img': (context, child) {
-              final url = context.tree.element!.attributes['src']!
-                  .replaceAll('../', '');
-              return Image(
-                image: MemoryImage(
-                  Uint8List.fromList(widget
-                      .controller._document!.Content!.Images![url]!.Content!),
-                ),
-              );
-            },
-            'fnote': (context, child) {
-              return Row(
-                children: [
-                  Container(
-                    height: 10,
-                    width: 15,
-                    decoration: BoxDecoration(
-                      color: Colors.deepOrangeAccent,
-                      shape: BoxShape.circle,
+    return Stack(
+      children: [
+        Column(
+          children: <Widget>[
+            if (chapterIndex >= 0 &&
+                _getParagraphIndexBy(positionIndex: index) == 0)
+              _buildDivider(_chapters[chapterIndex]),
+            Html(
+              onAnchorTap: (url, context, attributes, element) {
+                print(attributes);
+                _onNotePressed(url, widget.onNoteTap);
+              },
+              data: _paragraphs[index].element.outerHtml,
+              onLinkTap: (href, _, __, ___) => _onLinkPressed(
+                  href!, widget.onExternalLinkPressed, widget.onNoteTap),
+              style: {
+                'html': Style(
+                  padding: widget.paragraphPadding as EdgeInsets?,
+                ).merge(Style.fromTextStyle(widget.textStyle)),
+              },
+              customRender: {
+                'img': (context, child) {
+                  final url = context.tree.element!.attributes['src']!
+                      .replaceAll('../', '');
+                  return Image(
+                    image: MemoryImage(
+                      Uint8List.fromList(widget.controller._document!.Content!
+                          .Images![url]!.Content!),
                     ),
-                  ),
-                  child,
-                ],
-              );
-            }
-          },
+                  );
+                },
+              },
+            ),
+          ],
         ),
+        if (_containNotes(_paragraphs[index]))
+          Positioned(
+              top: _paragraphs[index].element.outerHtml.textHeight(
+                  widget.textStyle, MediaQuery.of(context).size.width),
+              left: 6,
+              child: Container(
+                height: 10,
+                width: 10,
+                decoration: BoxDecoration(
+                    color: Colors.deepOrangeAccent, shape: BoxShape.circle),
+              )),
       ],
     );
   }
@@ -473,4 +476,21 @@ enum _EpubViewLoadingState {
   loading,
   error,
   success,
+}
+
+extension StringExtension on String {
+  double textHeight(TextStyle style, double textWidth) {
+    print(this);
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(text: this, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout(minWidth: 0, maxWidth: double.infinity);
+
+    final countLines = (textPainter.size.width / textWidth).ceil();
+    print(countLines);
+    final height = (countLines - 1) * textPainter.size.height;
+    print(height);
+    return textPainter.size.height;
+  }
 }
