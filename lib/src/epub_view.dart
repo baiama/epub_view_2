@@ -203,7 +203,6 @@ class _EpubViewState extends State<EpubView> {
       _epubCfiReader?.epubCfi = cfi;
       final index = _epubCfiReader?.paragraphIndexByCfiFragment;
       if (index != null) {
-        var document = parse(_paragraphs[index].element.outerHtml);
         showNote?.call(_paragraphs[index].element.innerHtml);
       }
     }
