@@ -425,9 +425,10 @@ class _EpubViewState extends State<EpubView> {
         ),
         if (_containNotes(_paragraphs[index]))
           Positioned(
-              // top: _paragraphs[index].element.innerHtml.textHeight(
-              //     widget.textStyle, MediaQuery.of(context).size.width),
-              top: 16,
+              top: _paragraphs[index]
+                  .element
+                  .innerHtml
+                  .getHeight(widget.textStyle, context),
               left: 6,
               child: Container(
                 height: 10,
@@ -508,5 +509,26 @@ extension StringExtension on String {
     final countLines = (textPainter.size.width / textWidth).ceil();
     final height = (countLines - 1) * textPainter.size.height;
     return height;
+  }
+
+  double getHeight(TextStyle style, BuildContext context) {
+    final span = TextSpan(text: this, style: style);
+    final constraints = BoxConstraints(
+      maxWidth: MediaQuery.of(context).size.width,
+    );
+    final richTextWidget = Text.rich(span).build(context) as RichText;
+    final renderObject = richTextWidget.createRenderObject(context);
+
+    renderObject.layout(constraints);
+
+    final boxes = renderObject.getBoxesForSelection(
+      TextSelection(
+        baseOffset: 0,
+        extentOffset: span.toPlainText().length,
+      ),
+    );
+    print(this);
+    print(boxes.last.right);
+    return boxes.last.right;
   }
 }
