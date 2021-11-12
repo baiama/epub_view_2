@@ -425,10 +425,8 @@ class _EpubViewState extends State<EpubView> {
         ),
         if (_containNotes(_paragraphs[index]))
           Positioned(
-              top: _paragraphs[index]
-                  .element
-                  .innerHtml
-                  .getHeight(widget.textStyle, context),
+              top: _paragraphs[index].element.innerHtml.textHeight(
+                  widget.textStyle, MediaQuery.of(context).size.width - 32),
               left: 6,
               child: Container(
                 height: 10,
@@ -500,15 +498,21 @@ enum _EpubViewLoadingState {
 
 extension StringExtension on String {
   double textHeight(TextStyle style, double textWidth) {
+    var text = this.stripHtmlIfNeeded();
     final TextPainter textPainter = TextPainter(
-      text: TextSpan(text: this, style: style),
+      text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
       maxLines: 1,
     )..layout(minWidth: 0, maxWidth: double.infinity);
 
     final countLines = (textPainter.size.width / textWidth).ceil();
-    final height = (countLines - 1) * textPainter.size.height;
+    final height = ((countLines) * textPainter.size.height);
+    print(height);
     return height;
+  }
+
+  String stripHtmlIfNeeded() {
+    return this.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), ' ');
   }
 
   double getHeight(TextStyle style, BuildContext context) {
