@@ -201,7 +201,11 @@ class _EpubViewState extends State<EpubView> {
     String? cfi = _getIdFromHref(href);
     if (cfi != null) {
       _gotoEpubCfi(cfi);
-      showNote?.call(cfi);
+      _epubCfiReader?.epubCfi = cfi;
+      final index = _epubCfiReader?.paragraphIndexByCfiFragment;
+      if (index != null) {
+        showNote?.call(_paragraphs[index].element.innerHtml);
+      }
     }
   }
 
@@ -386,7 +390,6 @@ class _EpubViewState extends State<EpubView> {
     }
 
     final chapterIndex = _getChapterIndexBy(positionIndex: index);
-    // print(_paragraphs[index].element.outerHtml);
     return Stack(
       children: [
         Column(
@@ -497,7 +500,6 @@ enum _EpubViewLoadingState {
 
 extension StringExtension on String {
   double textHeight(TextStyle style, double textWidth) {
-    print(this);
     final TextPainter textPainter = TextPainter(
       text: TextSpan(text: this, style: style),
       textDirection: TextDirection.ltr,
@@ -505,10 +507,7 @@ extension StringExtension on String {
     )..layout(minWidth: 0, maxWidth: double.infinity);
 
     final countLines = (textPainter.size.width / textWidth).ceil();
-    print(countLines);
     final height = (countLines - 1) * textPainter.size.height;
-    print(textPainter.size.width);
-    print(height);
     return height;
   }
 }
