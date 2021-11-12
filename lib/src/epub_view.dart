@@ -185,10 +185,27 @@ class _EpubViewState extends State<EpubView> {
   }
 
   bool _containNotes(Paragraph item) {
-    return item.element.outerHtml.contains("sup");
+    var document = parse(item.element.innerHtml);
+    final anchors = document.querySelectorAll('a');
+    for (final anchor in anchors) {
+      String href = anchor.attributes['href'] ?? '';
+      String? cfi = _getIdFromHref(href);
+      if (cfi != null) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void _onNotePressed(String? href, void Function(String href)? showNote) {
+    String? cfi = _getIdFromHref(href);
+    if (cfi != null) {
+      _gotoEpubCfi(cfi);
+      showNote?.call(cfi);
+    }
+  }
+
+  String? _getIdFromHref(String? href) {
     String note = href ?? "";
 
     // Chapter01.xhtml#ph1_1 -> [ph1_1, Chapter01.xhtml] || [ph1_1]
@@ -217,10 +234,9 @@ class _EpubViewState extends State<EpubView> {
         );
 
         if (cfi != null) {
-          showNote?.call(cfi);
+          return cfi;
         }
       }
-      return;
     } else {
       final paragraph = _paragraphByIdRef(hrefIdRef);
       final chapter =
@@ -235,11 +251,11 @@ class _EpubViewState extends State<EpubView> {
           paragraphIndex: paragraphIndex,
         );
         if (cfi != null) {
-          showNote?.call(cfi);
+          return cfi;
         }
       }
-      return;
     }
+    return null;
   }
 
   void _onLinkPressed(
@@ -370,6 +386,7 @@ class _EpubViewState extends State<EpubView> {
     }
 
     final chapterIndex = _getChapterIndexBy(positionIndex: index);
+    // print(_paragraphs[index].element.outerHtml);
     return Stack(
       children: [
         Column(
@@ -379,7 +396,6 @@ class _EpubViewState extends State<EpubView> {
               _buildDivider(_chapters[chapterIndex]),
             Html(
               onAnchorTap: (url, context, attributes, element) {
-                print(attributes);
                 _onNotePressed(url, widget.onNoteTap);
               },
               data: _paragraphs[index].element.outerHtml,
@@ -407,8 +423,9 @@ class _EpubViewState extends State<EpubView> {
         ),
         if (_containNotes(_paragraphs[index]))
           Positioned(
-              top: _paragraphs[index].element.innerHtml.textHeight(
-                  widget.textStyle, MediaQuery.of(context).size.width),
+              // top: _paragraphs[index].element.innerHtml.textHeight(
+              //     widget.textStyle, MediaQuery.of(context).size.width),
+              top: 16,
               left: 6,
               child: Container(
                 height: 10,
