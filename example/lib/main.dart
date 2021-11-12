@@ -4,6 +4,7 @@ import 'package:epub_view/epub_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show SystemChrome, SystemUiOverlayStyle, rootBundle;
+import 'package:flutter_html/flutter_html.dart';
 
 void main() => runApp(MyApp());
 
@@ -130,15 +131,17 @@ class _MyHomePageState extends State<MyHomePage> {
             print("link tap");
             print(link);
           },
-          onNoteTap: (String id) {
-            print(id);
+          onNoteTap: (String data) {
             showModalBottomSheet(
                 context: context,
                 builder: (context) {
                   return Container(
                     height: 250,
+                    padding: EdgeInsets.symmetric(horizontal: 20),
                     alignment: Alignment.center,
-                    child: Text(id),
+                    child: Html(
+                      data: data,
+                    ),
                   );
                 });
           },

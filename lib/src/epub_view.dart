@@ -189,7 +189,7 @@ class _EpubViewState extends State<EpubView> {
     final anchors = document.querySelectorAll('a');
     for (final anchor in anchors) {
       String href = anchor.attributes['href'] ?? '';
-      String? cfi = _getIdFromHref(href);
+      String? cfi = _getCFIFromHref(href);
       if (cfi != null) {
         return true;
       }
@@ -198,18 +198,18 @@ class _EpubViewState extends State<EpubView> {
   }
 
   void _onNotePressed(String? href, void Function(String href)? showNote) {
-    String? cfi = _getIdFromHref(href);
+    String? cfi = _getCFIFromHref(href);
     if (cfi != null) {
-      _gotoEpubCfi(cfi);
       _epubCfiReader?.epubCfi = cfi;
       final index = _epubCfiReader?.paragraphIndexByCfiFragment;
       if (index != null) {
+        var document = parse(_paragraphs[index].element.outerHtml);
         showNote?.call(_paragraphs[index].element.innerHtml);
       }
     }
   }
 
-  String? _getIdFromHref(String? href) {
+  String? _getCFIFromHref(String? href) {
     String note = href ?? "";
 
     // Chapter01.xhtml#ph1_1 -> [ph1_1, Chapter01.xhtml] || [ph1_1]
