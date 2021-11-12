@@ -407,7 +407,7 @@ class _EpubViewState extends State<EpubView> {
         ),
         if (_containNotes(_paragraphs[index]))
           Positioned(
-              top: _paragraphs[index].element.outerHtml.textHeight(
+              top: _paragraphs[index].element.innerHtml.textHeight(
                   widget.textStyle, MediaQuery.of(context).size.width),
               left: 6,
               child: Container(
@@ -490,7 +490,8 @@ extension StringExtension on String {
     final countLines = (textPainter.size.width / textWidth).ceil();
     print(countLines);
     final height = (countLines - 1) * textPainter.size.height;
+    print(textPainter.size.width);
     print(height);
-    return textPainter.size.height;
+    return height;
   }
 }
