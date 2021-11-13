@@ -16,10 +16,10 @@ import 'epub_cfi/parser.dart';
 
 export 'package:epubx/epubx.dart' hide Image;
 
+part 'epub_cfi_reader.dart';
+part 'epub_controller.dart';
 part 'epub_data.dart';
 part 'epub_parser.dart';
-part 'epub_controller.dart';
-part 'epub_cfi_reader.dart';
 
 const MIN_TRAILING_EDGE = 0.55;
 const MIN_LEADING_EDGE = -0.05;
@@ -54,10 +54,12 @@ class EpubView extends StatefulWidget {
     this.paragraphPadding = const EdgeInsets.symmetric(horizontal: 16),
     this.textStyle = _defaultTextStyle,
     Key? key,
+    this.onNoteTap,
   }) : super(key: key);
 
   final EpubController controller;
   final ExternalLinkPressed? onExternalLinkPressed;
+  final ExternalLinkPressed? onNoteTap;
 
   /// Show document loading error message inside [EpubView]
   final Widget Function(Exception? error)? errorBuilder;
@@ -182,18 +184,34 @@ class _EpubViewState extends State<EpubView> {
     );
   }
 
-  void _onLinkPressed(String href, void Function(String href)? openExternal) {
-    if (href.contains('://')) {
-      openExternal?.call(href);
-      return;
+  bool _containNotes(Paragraph item) {
+    String html = item.element.outerHtml;
+    if (html.contains("class=\"link\"") && html.contains("sup")) {
+      return true;
     }
+    return false;
+  }
+
+  void _onNotePressed(String? href, void Function(String href)? showNote) {
+    String? cfi = _getCFIFromHref(href);
+    if (cfi != null) {
+      _epubCfiReader?.epubCfi = cfi;
+      final index = _epubCfiReader?.paragraphIndexByCfiFragment;
+      if (index != null) {
+        showNote?.call(_paragraphs[index].element.innerHtml);
+      }
+    }
+  }
+
+  String? _getCFIFromHref(String? href) {
+    String note = href ?? "";
 
     // Chapter01.xhtml#ph1_1 -> [ph1_1, Chapter01.xhtml] || [ph1_1]
     String? hrefIdRef;
     String? hrefFileName;
 
-    if (href.contains('#')) {
-      final dividedHref = href.split('#');
+    if (note.contains('#')) {
+      final dividedHref = note.split('#');
       if (dividedHref.length == 1) {
         hrefIdRef = href;
       } else {
@@ -213,9 +231,10 @@ class _EpubViewState extends State<EpubView> {
           additional: ['/4/2'],
         );
 
-        _gotoEpubCfi(cfi);
+        if (cfi != null) {
+          return cfi;
+        }
       }
-      return;
     } else {
       final paragraph = _paragraphByIdRef(hrefIdRef);
       final chapter =
@@ -229,10 +248,20 @@ class _EpubViewState extends State<EpubView> {
           chapter: chapter,
           paragraphIndex: paragraphIndex,
         );
-
-        _gotoEpubCfi(cfi);
+        if (cfi != null) {
+          return cfi;
+        }
       }
+    }
+    return null;
+  }
 
+  void _onLinkPressed(
+    String href,
+    void Function(String href)? openExternal,
+  ) {
+    if (href.contains('://')) {
+      openExternal?.call(href);
       return;
     }
   }
@@ -353,34 +382,54 @@ class _EpubViewState extends State<EpubView> {
     }
 
     final chapterIndex = _getChapterIndexBy(positionIndex: index);
-
-    return Column(
-      children: <Widget>[
-        if (chapterIndex >= 0 &&
-            _getParagraphIndexBy(positionIndex: index) == 0)
-          _buildDivider(_chapters[chapterIndex]),
-        Html(
-          data: _paragraphs[index].element.outerHtml,
-          onLinkTap: (href, _, __, ___) =>
-              _onLinkPressed(href!, widget.onExternalLinkPressed),
-          style: {
-            'html': Style(
-              padding: widget.paragraphPadding as EdgeInsets?,
-            ).merge(Style.fromTextStyle(widget.textStyle)),
-          },
-          customRender: {
-            'img': (context, child) {
-              final url = context.tree.element!.attributes['src']!
-                  .replaceAll('../', '');
-              return Image(
-                image: MemoryImage(
-                  Uint8List.fromList(widget
-                      .controller._document!.Content!.Images![url]!.Content!),
-                ),
-              );
-            }
-          },
+    return Stack(
+      children: [
+        Column(
+          children: <Widget>[
+            if (chapterIndex >= 0 &&
+                _getParagraphIndexBy(positionIndex: index) == 0)
+              _buildDivider(_chapters[chapterIndex]),
+            Html(
+              onAnchorTap: (url, context, attributes, element) {
+                if (_containNotes(_paragraphs[index])) {
+                  _onNotePressed(url, widget.onNoteTap);
+                }
+              },
+              data: _paragraphs[index].element.outerHtml,
+              onLinkTap: (href, _, __, ___) =>
+                  _onLinkPressed(href!, widget.onExternalLinkPressed),
+              style: {
+                'html': Style(
+                  padding: widget.paragraphPadding as EdgeInsets?,
+                ).merge(Style.fromTextStyle(widget.textStyle)),
+              },
+              customRender: {
+                'img': (context, child) {
+                  final url = context.tree.element!.attributes['src']!
+                      .replaceAll('../', '');
+                  return Image(
+                    image: MemoryImage(
+                      Uint8List.fromList(widget.controller._document!.Content!
+                          .Images![url]!.Content!),
+                    ),
+                  );
+                },
+              },
+            ),
+          ],
         ),
+        //это точки слева @TODO
+        // if (_containNotes(_paragraphs[index]))
+        //   Positioned(
+        //       top: _paragraphs[index].element.innerHtml.textHeight(
+        //           widget.textStyle, MediaQuery.of(context).size.width - 32),
+        //       left: 6,
+        //       child: Container(
+        //         height: 10,
+        //         width: 10,
+        //         decoration: BoxDecoration(
+        //             color: Colors.deepOrangeAccent, shape: BoxShape.circle),
+        //       )),
       ],
     );
   }
@@ -441,4 +490,23 @@ enum _EpubViewLoadingState {
   loading,
   error,
   success,
+}
+
+extension StringExtension on String {
+  double textHeight(TextStyle style, double textWidth) {
+    var text = this.stripHtmlIfNeeded();
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout(minWidth: 0, maxWidth: double.infinity);
+
+    final countLines = (textPainter.size.width / textWidth).ceil();
+    final height = ((countLines) * textPainter.size.height);
+    return height;
+  }
+
+  String stripHtmlIfNeeded() {
+    return this.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), ' ');
+  }
 }
