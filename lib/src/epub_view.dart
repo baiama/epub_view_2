@@ -502,7 +502,6 @@ extension StringExtension on String {
 
     final countLines = (textPainter.size.width / textWidth).ceil();
     final height = ((countLines) * textPainter.size.height);
-    print(height);
     return height;
   }
 
