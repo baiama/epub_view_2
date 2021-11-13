@@ -16,10 +16,10 @@ import 'epub_cfi/parser.dart';
 
 export 'package:epubx/epubx.dart' hide Image;
 
+part 'epub_cfi_reader.dart';
+part 'epub_controller.dart';
 part 'epub_data.dart';
 part 'epub_parser.dart';
-part 'epub_controller.dart';
-part 'epub_cfi_reader.dart';
 
 const MIN_TRAILING_EDGE = 0.55;
 const MIN_LEADING_EDGE = -0.05;
@@ -185,14 +185,9 @@ class _EpubViewState extends State<EpubView> {
   }
 
   bool _containNotes(Paragraph item) {
-    var document = parse(item.element.innerHtml);
-    final anchors = document.querySelectorAll('a');
-    for (final anchor in anchors) {
-      String href = anchor.attributes['href'] ?? '';
-      String? cfi = _getCFIFromHref(href);
-      if (cfi != null) {
-        return true;
-      }
+    String html = item.element.outerHtml;
+    if (html.contains("class=\"link\"") && html.contains("sup")) {
+      return true;
     }
     return false;
   }
@@ -264,13 +259,11 @@ class _EpubViewState extends State<EpubView> {
   void _onLinkPressed(
     String href,
     void Function(String href)? openExternal,
-    void Function(String href)? showNote,
   ) {
     if (href.contains('://')) {
       openExternal?.call(href);
       return;
     }
-    _onNotePressed(href, showNote);
   }
 
   Paragraph? _paragraphByIdRef(String idRef) =>
@@ -398,11 +391,13 @@ class _EpubViewState extends State<EpubView> {
               _buildDivider(_chapters[chapterIndex]),
             Html(
               onAnchorTap: (url, context, attributes, element) {
-                _onNotePressed(url, widget.onNoteTap);
+                if (_containNotes(_paragraphs[index])) {
+                  _onNotePressed(url, widget.onNoteTap);
+                }
               },
               data: _paragraphs[index].element.outerHtml,
-              onLinkTap: (href, _, __, ___) => _onLinkPressed(
-                  href!, widget.onExternalLinkPressed, widget.onNoteTap),
+              onLinkTap: (href, _, __, ___) =>
+                  _onLinkPressed(href!, widget.onExternalLinkPressed),
               style: {
                 'html': Style(
                   padding: widget.paragraphPadding as EdgeInsets?,
@@ -513,26 +508,5 @@ extension StringExtension on String {
 
   String stripHtmlIfNeeded() {
     return this.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), ' ');
-  }
-
-  double getHeight(TextStyle style, BuildContext context) {
-    final span = TextSpan(text: this, style: style);
-    final constraints = BoxConstraints(
-      maxWidth: MediaQuery.of(context).size.width,
-    );
-    final richTextWidget = Text.rich(span).build(context) as RichText;
-    final renderObject = richTextWidget.createRenderObject(context);
-
-    renderObject.layout(constraints);
-
-    final boxes = renderObject.getBoxesForSelection(
-      TextSelection(
-        baseOffset: 0,
-        extentOffset: span.toPlainText().length,
-      ),
-    );
-    print(this);
-    print(boxes.last.right);
-    return boxes.last.right;
   }
 }
