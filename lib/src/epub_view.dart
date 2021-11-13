@@ -418,17 +418,18 @@ class _EpubViewState extends State<EpubView> {
             ),
           ],
         ),
-        if (_containNotes(_paragraphs[index]))
-          Positioned(
-              top: _paragraphs[index].element.innerHtml.textHeight(
-                  widget.textStyle, MediaQuery.of(context).size.width - 32),
-              left: 6,
-              child: Container(
-                height: 10,
-                width: 10,
-                decoration: BoxDecoration(
-                    color: Colors.deepOrangeAccent, shape: BoxShape.circle),
-              )),
+        //это точки слева @TODO
+        // if (_containNotes(_paragraphs[index]))
+        //   Positioned(
+        //       top: _paragraphs[index].element.innerHtml.textHeight(
+        //           widget.textStyle, MediaQuery.of(context).size.width - 32),
+        //       left: 6,
+        //       child: Container(
+        //         height: 10,
+        //         width: 10,
+        //         decoration: BoxDecoration(
+        //             color: Colors.deepOrangeAccent, shape: BoxShape.circle),
+        //       )),
       ],
     );
   }
